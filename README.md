@@ -159,7 +159,8 @@ Verify that locally built service is deployed
 The log should show as below
 
 ```{"message":"Exercise 1 - Build service locally - service config: \u0026{productCatalogSvcAddr:productcatalogservice:3550 cartSvcAddr:cartservice:7070 currencySvcAddr:currencyservice:7000 shippingSvcAddr:shippingservice:50051 emailSvcAddr:emailservice:5000 paymentSvcAddr:paymentservice:50051}","severity":"info","timestamp":"2022-07-24T07:24:09.787305782Z"}
-{"message":"starting to listen on tcp: \"[::]:5050\"","severity":"info","timestamp":"2022-07-24T07:24:09.787788665Z"}```
+{"message":"starting to listen on tcp: \"[::]:5050\"","severity":"info","timestamp":"2022-07-24T07:24:09.787788665Z"}
+```
 
 ## Architecture
 
