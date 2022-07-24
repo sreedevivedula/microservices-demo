@@ -13,7 +13,7 @@ Kubernetes/GKE, Istio, Stackdriver, gRPC and OpenCensus**. This application
 works on any Kubernetes cluster, as well as Google
 Kubernetes Engine. It’s **easy to deploy with little to no configuration**.
 
-**We will be using this repo to demonstrate Observability concepts in O & M workshop. 
+**We will be using this repo to demonstrate Observability concepts in O & M workshop.**
 Branch obs-exercise-1 can be used for completing Exercise 1 of the workshop.
 
 
@@ -27,58 +27,127 @@ Branch obs-exercise-1 can be used for completing Exercise 1 of the workshop.
 
 1. GKE Cluster should be created. Optionally, istio can be setup. If istio has not been setup, please follow instructions to setup istio.
 
+**Setup Istio**
+
+- Follow the instructions at https://istio.io/latest/docs/setup/getting-started/#download to install istio. Please find below for reference.
+
+```
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-1.14.1
+export PATH=$PWD/bin:$PATH
+```
+
+- Install Istio components with demo profile with sampling rate set to 100% and Jaeger service address
+
+```
+istioctl install --set profile=demo --set meshConfig.defaultConfig.tracing.sampling=100.00 --set meshConfig.defaultConfig.tracing.zipkin.address=zipkin.istio-system.svc.cluster.local:9411 -y
+```
+
+- Inject envoy proxies in application namespace
+
+```kubectl label namespace default istio-injection=enabled```
+
+- Re-create application deployments
+
+```
+kubectl delete --all deployments
+kubectl apply -f ./release/kubernetes-manifests.yaml
+kubectl apply -f ./release/istio-manifests.yaml
+```
+
+- After a few minutes, you should see application pods with istio sidecar proxies running
+```
+NAME                                                READY   STATUS     RESTARTS   AGE
+adservice-6f498fc6c6-p67n5                          2/2     Running    0          45s
+cartservice-bc9b949b-75wps                          2/2     Running    0          47s
+checkoutservice-6fffd84787-77wlg                    2/2     Running    0          51s
+currencyservice-6ddbdd4956-52m6s                    2/2     Running    0          47s
+emailservice-68fc78478-jgpr5                        2/2     Running    0          52s
+frontend-5bd77dd84b-crnsl                           2/2     Running    0          50s
+paymentservice-584567958d-pfb96                     2/2     Running    0          48s
+productcatalogservice-75f4877bf4-jzqqr              2/2     Running    0          48s
+recommendationservice-646c88579b-jpmn2              2/2     Running    0          50s
+redis-cart-5b569cd47-mrtkm                          2/2     Running    0          45s
+shippingservice-79849ddf8-6v2gn                     2/2     Running    0          46s
+```
+
+- Get Ingress IP and access the application
+
+```
+INGRESS_HOST="$(kubectl -n istio-system get service istio-ingressgateway \
+   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+echo "$INGRESS_HOST"
+```
+
+## Setup Jaeger
+
+- Deploy jaeger into cluster
+
+Follow the instructions at https://istio.io/latest/docs/ops/integrations/jaeger/#installation for basic installation of jaeger components.
+
+```
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.14/samples/addons/jaeger.yaml
+```
+
+- Recreate all deployments for application services to register with Jaeger
+
+```
+kubectl delete --all deployments
+kubectl apply -f ./release/kubernetes-manifests.yaml
+kubectl apply -f ./release/istio-manifests.yaml
+```
+
+- Start Jaeger dashboard and access services
+
+```istioctl dashboard jaeger &```
+
+You should see Jaeger service registered with all the application services
+
+- See Checkout call trace
+
+Access the application and do a checkout. See the corresponding trace in Jaeger dashboard.
+
+The service calls from checkout service should be individual calls as in the below screenshot. In the next exercise, we will try to tie them together. Before that, we should be able to make changes to services. So, let us try and build checkout service locally.
+
+![Alt text](./docs/img/jaeger-exercise-1.png?raw=true "Jaeger Dashboard")
+
 ## Building Service Locally
 
-1. **Deploy the sample app to the cluster.**
+1. **Update service locally**
 
 ```
-kubectl apply -f ./release/kubernetes-manifests.yaml
+cd src/checkoutservice
+
+# Enhance log statments in main.go file - main() function
+
+log.Infof("Exercise 1 - Build service locally - service config: %+v", svc)
 ```
 
-5. **Wait for the Pods to be ready.**
+2. **Build Docker Image**
+
+Build docker image in Cloud Shell Instance and deploy to your individual dockerhub accounts.
+
+In your dockerhub account, create a new repository obs-checkout-service and make it public.
 
 ```
-kubectl get pods
+docker build -t suryasreevedula/obs-checkout-service:exercise-1 .
+docker push suryasreevedula/obs-checkout-service:exercise-1
 ```
 
-After a few minutes, you should see:
+3.  **Update Deployment manifest**
 
+Update release/kubernetes-manifests.yaml with the image name in checkoutservice Deployment
+
+Example:
 ```
-NAME                                     READY   STATUS    RESTARTS   AGE
-adservice-76bdd69666-ckc5j               1/1     Running   0          2m58s
-cartservice-66d497c6b7-dp5jr             1/1     Running   0          2m59s
-checkoutservice-666c784bd6-4jd22         1/1     Running   0          3m1s
-currencyservice-5d5d496984-4jmd7         1/1     Running   0          2m59s
-emailservice-667457d9d6-75jcq            1/1     Running   0          3m2s
-frontend-6b8d69b9fb-wjqdg                1/1     Running   0          3m1s
-loadgenerator-665b5cd444-gwqdq           1/1     Running   0          3m
-paymentservice-68596d6dd6-bf6bv          1/1     Running   0          3m
-productcatalogservice-557d474574-888kr   1/1     Running   0          3m
-recommendationservice-69c56b74d4-7z8r5   1/1     Running   0          3m1s
-redis-cart-5f59546cdd-5jnqf              1/1     Running   0          2m58s
-shippingservice-6ccc89f8fd-v686r         1/1     Running   0          2m58s
+image: suryasreevedula/ob-checkout-service:1.0
 ```
 
-7. **Access the web frontend in a browser** using the frontend's `EXTERNAL_IP`.
+4. **Deploy locally built service**
 
 ```
-kubectl get service frontend-external | awk '{print $4}'
-```
-
-*Example output - do not copy*
-
-```
-EXTERNAL-IP
-<your-ip>
-```
-
-**Note**- you may see `<pending>` while GCP provisions the load balancer. If this happens, wait a few minutes and re-run the command.
-
-8. [Optional] **Clean up**:
-
-```
-gcloud container clusters delete onlineboutique \
-    --project=${PROJECT_ID} --zone=${ZONE}
+kubectl delete deploy checkoutservice
+kubectl apply -f release/kubernetes-manifests.yaml
 ```
 
 ## Architecture

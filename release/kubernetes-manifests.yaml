@@ -90,8 +90,8 @@ spec:
       serviceAccountName: default
       containers:
         - name: server
-          # image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.3.8
-          image: suryasreevedula/ob-checkout-service:exercise-1
+          image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.3.8
+          # image: suryasreevedula/ob-checkout-service:exercise-1
           ports:
           - containerPort: 5050
           readinessProbe:
