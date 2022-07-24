@@ -144,6 +144,7 @@ function convert (call, callback) {
       result.currency_code = request.to_code;
 
       logger.info(`conversion request successful`);
+      logger.info(`CurrenncyService#Convert invoked with request ${JSON.stringify(call)}`);
       callback(null, result);
     });
   } catch (err) {

@@ -16,6 +16,9 @@ Kubernetes Engine. It’s **easy to deploy with little to no configuration**.
 **We will be using this repo to demonstrate Observability concepts in O & M workshop.**
 Branch obs-exercise-1 can be used for completing Exercise 1 of the workshop.
 
+## Exercise 1
+
+**Goal: Setup Jaeger and Build Service Locally**
 
 ## Screenshots
 
@@ -161,6 +164,36 @@ The log should show as below
 ```
 {"message":"Exercise 1 - Build service locally - service config: \u0026{productCatalogSvcAddr:productcatalogservice:3550 cartSvcAddr:cartservice:7070 currencySvcAddr:currencyservice:7000 shippingSvcAddr:shippingservice:50051 emailSvcAddr:emailservice:5000 paymentSvcAddr:paymentservice:50051}","severity":"info","timestamp":"2022-07-24T07:24:09.787305782Z"}
 ```
+
+## Exercise 2
+
+**Goal: Create a trace**
+
+1. **Propagate Context to upstream services**
+
+    Add the below function to checkoutservice/main.go and add the interceptor to upstream calls
+
+    ```
+    func UnaryClientInterceptor(
+        ctx context.Context,
+        method string,
+        req, reply interface{},
+        cc *grpc.ClientConn,
+        invoker grpc.UnaryInvoker,
+        opts ...grpc.CallOption) error {
+        // Take the incoming metadata and transfer it to the outgoing metadata
+        if md, ok := metadata.FromIncomingContext(ctx); ok {
+            ctx = metadata.NewOutgoingContext(ctx, md)
+        }
+        return invoker(ctx, method, req, reply, cc, opts...)
+    } 
+    ```
+
+2. ** Verify trace creation in Jaeger dashboard
+
+    The trace should now connect spans of checkoutservice to spans of upstream services. The trace should look like below.
+
+    ![Alt text](./docs/img/jaeger-exercise-2.png?raw=true "Jaeger Dashboard with Trace")
 
 ## Architecture
 

@@ -25,6 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/checkoutservice/genproto"
@@ -60,6 +61,21 @@ type checkoutService struct {
 	shippingSvcAddr       string
 	emailSvcAddr          string
 	paymentSvcAddr        string
+}
+
+// UnaryClientInterceptor for passing incoming metadata to outgoing metadata
+func UnaryClientInterceptor(
+	ctx context.Context,
+	method string,
+	req, reply interface{},
+	cc *grpc.ClientConn,
+	invoker grpc.UnaryInvoker,
+	opts ...grpc.CallOption) error {
+	// Take the incoming metadata and transfer it to the outgoing metadata
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		ctx = metadata.NewOutgoingContext(ctx, md)
+	}
+	return invoker(ctx, method, req, reply, cc, opts...)
 }
 
 func main() {
@@ -193,7 +209,7 @@ func (cs *checkoutService) prepareOrderItemsAndShippingQuoteFromCart(ctx context
 
 func (cs *checkoutService) quoteShipping(ctx context.Context, address *pb.Address, items []*pb.CartItem) (*pb.Money, error) {
 	conn, err := grpc.DialContext(ctx, cs.shippingSvcAddr,
-		grpc.WithInsecure())
+		grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return nil, fmt.Errorf("could not connect shipping service: %+v", err)
 	}
@@ -210,7 +226,7 @@ func (cs *checkoutService) quoteShipping(ctx context.Context, address *pb.Addres
 }
 
 func (cs *checkoutService) getUserCart(ctx context.Context, userID string) ([]*pb.CartItem, error) {
-	conn, err := grpc.DialContext(ctx, cs.cartSvcAddr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, cs.cartSvcAddr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return nil, fmt.Errorf("could not connect cart service: %+v", err)
 	}
@@ -224,7 +240,7 @@ func (cs *checkoutService) getUserCart(ctx context.Context, userID string) ([]*p
 }
 
 func (cs *checkoutService) emptyUserCart(ctx context.Context, userID string) error {
-	conn, err := grpc.DialContext(ctx, cs.cartSvcAddr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, cs.cartSvcAddr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return fmt.Errorf("could not connect cart service: %+v", err)
 	}
@@ -239,7 +255,7 @@ func (cs *checkoutService) emptyUserCart(ctx context.Context, userID string) err
 func (cs *checkoutService) prepOrderItems(ctx context.Context, items []*pb.CartItem, userCurrency string) ([]*pb.OrderItem, error) {
 	out := make([]*pb.OrderItem, len(items))
 
-	conn, err := grpc.DialContext(ctx, cs.productCatalogSvcAddr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, cs.productCatalogSvcAddr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return nil, fmt.Errorf("could not connect product catalog service: %+v", err)
 	}
@@ -263,12 +279,12 @@ func (cs *checkoutService) prepOrderItems(ctx context.Context, items []*pb.CartI
 }
 
 func (cs *checkoutService) convertCurrency(ctx context.Context, from *pb.Money, toCurrency string) (*pb.Money, error) {
-	conn, err := grpc.DialContext(ctx, cs.currencySvcAddr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, cs.currencySvcAddr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return nil, fmt.Errorf("could not connect currency service: %+v", err)
 	}
 	defer conn.Close()
-	result, err := pb.NewCurrencyServiceClient(conn).Convert(context.TODO(), &pb.CurrencyConversionRequest{
+	result, err := pb.NewCurrencyServiceClient(conn).Convert(ctx, &pb.CurrencyConversionRequest{
 		From:   from,
 		ToCode: toCurrency})
 	if err != nil {
@@ -278,7 +294,7 @@ func (cs *checkoutService) convertCurrency(ctx context.Context, from *pb.Money, 
 }
 
 func (cs *checkoutService) chargeCard(ctx context.Context, amount *pb.Money, paymentInfo *pb.CreditCardInfo) (string, error) {
-	conn, err := grpc.DialContext(ctx, cs.paymentSvcAddr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, cs.paymentSvcAddr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return "", fmt.Errorf("failed to connect payment service: %+v", err)
 	}
@@ -294,7 +310,7 @@ func (cs *checkoutService) chargeCard(ctx context.Context, amount *pb.Money, pay
 }
 
 func (cs *checkoutService) sendOrderConfirmation(ctx context.Context, email string, order *pb.OrderResult) error {
-	conn, err := grpc.DialContext(ctx, cs.emailSvcAddr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, cs.emailSvcAddr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return fmt.Errorf("failed to connect email service: %+v", err)
 	}
@@ -306,7 +322,7 @@ func (cs *checkoutService) sendOrderConfirmation(ctx context.Context, email stri
 }
 
 func (cs *checkoutService) shipOrder(ctx context.Context, address *pb.Address, items []*pb.CartItem) (string, error) {
-	conn, err := grpc.DialContext(ctx, cs.shippingSvcAddr, grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, cs.shippingSvcAddr, grpc.WithInsecure(), grpc.WithUnaryInterceptor(UnaryClientInterceptor))
 	if err != nil {
 		return "", fmt.Errorf("failed to connect email service: %+v", err)
 	}
