@@ -16,10 +16,6 @@ Kubernetes Engine. It’s **easy to deploy with little to no configuration**.
 **We will be using this repo to demonstrate Observability concepts in O & M workshop.**
 Branch obs-exercise-1 can be used for completing Exercise 1 of the workshop.
 
-## Exercise 1
-
-**Goal: Setup Jaeger and Build Service Locally**
-
 ## Screenshots
 
 | Home Page                                                                                                         | Checkout Call Trace                                                                                                    |
@@ -81,6 +77,10 @@ INGRESS_HOST="$(kubectl -n istio-system get service istio-ingressgateway \
    -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
 echo "$INGRESS_HOST"
 ```
+
+## Exercise 1
+
+**Goal: Setup Jaeger and Build Service Locally**
 
 ## Setup Jaeger
 
