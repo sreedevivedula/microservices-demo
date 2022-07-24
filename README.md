@@ -24,7 +24,7 @@ Branch obs-exercise-1 can be used for completing Exercise 1 of the workshop.
 
 | Home Page                                                                                                         | Checkout Call Trace                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [![Screenshot of store homepage](./docs/img/online-boutique-frontend-1.png)](./docs/img/online-boutique-frontend-1.png) | [![Screenshot of checkout call trace](./docs/img/jaeger-exercise-1.png)](./docs/img/jaeger-exercise-1.png) |
+| [![Screenshot of store homepage](./docs/img/online-boutique-frontend-1.png)](./docs/img/online-boutique-frontend-1.png) | [![Screenshot of checkout call trace](./docs/img/jaeger-exercise-2.png)](./docs/img/jaeger-exercise-2.png) |
 
 ## Pre-requisites
 
